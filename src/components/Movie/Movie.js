@@ -17,26 +17,30 @@ class Movie extends Component {
   };
 
   componentDidMount() {
-    this.setState({ loading: true });
-    // First fetch the movie
-    const endpoint = `${API_URL}movie/${
-      this.props.match.params.movieId
-    }?api_key=${API_KEY}&language="en-US`;
-    this.fetchItems(endpoint);
+    if (localStorage.getItem(`${this.props.match.params.movieId}`)) {
+      const state = JSON.parse(
+        localStorage.getItem(`${this.props.match.params.movieId}`)
+      );
+      this.setState({ ...state });
+    } else {
+      this.setState({ loading: true });
+      // First fetch the movie ...
+      const endpoint = `${API_URL}movie/${
+        this.props.match.params.movieId
+      }?api_key=${API_KEY}&language=en-US`;
+      this.fetchItems(endpoint);
+    }
   }
 
   fetchItems = endpoint => {
     fetch(endpoint)
       .then(result => result.json())
       .then(result => {
-        console.log(result);
-        // If there isn't a movie
         if (result.status_code) {
-          // check for a result
           this.setState({ loading: false });
         } else {
           this.setState({ movie: result }, () => {
-            // ...then fetch actors in the setState callback function
+            // ... then fetch actors in the setState callback function
             const endpoint = `${API_URL}movie/${
               this.props.match.params.movieId
             }/credits?api_key=${API_KEY}`;
@@ -47,16 +51,24 @@ class Movie extends Component {
                   member => member.job === "Director"
                 );
 
-                this.setState({
-                  actors: result.cast,
-                  directors,
-                  loading: false
-                });
+                this.setState(
+                  {
+                    actors: result.cast,
+                    directors,
+                    loading: false
+                  },
+                  () => {
+                    localStorage.setItem(
+                      `${this.props.match.params.movieId}`,
+                      JSON.stringify(this.state)
+                    );
+                  }
+                );
               });
           });
         }
       })
-      .catch(error => console.error("Error: ", error));
+      .catch(error => console.error("Error:", error));
   };
 
   render() {
@@ -88,7 +100,7 @@ class Movie extends Component {
         {!this.state.actors && !this.state.loading ? (
           <h1>No Movie Found!</h1>
         ) : null}
-        {this.state.loading ? <Spinner /> : null}}
+        {this.state.loading ? <Spinner /> : null}
       </div>
     );
   }
